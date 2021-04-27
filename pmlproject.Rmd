@@ -1,0 +1,70 @@
+---
+title: "Activity Analysis"
+author: "Gradon Kam"
+date: "4/26/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+This analysis attempts to predict activity types based on data from wearable accelerometers.
+Data is sourced from http://groupware.les.inf.puc-rio.br/har.
+The Weight Lifting Exercises dataset is used with the goal of predicting execution of a dumbbell biceps curl with class A corresponding to correct execution and classes B-E corresponding to incorrect execution in different forms.
+
+## Data Setup
+Load data from csv files and split into testing and training sets. The data in pml-testing.csv is for use in final testing for the model predictions only. Data in pml-training.csv is split into training/testing/validation sets for model development and analysis. Use 60% of data for training, 20% for testing, 20% for validation.
+
+## Data Cleanup
+The dataset also includes preprocessing which will be removed. Informational data (usernames and timestamps/windows) is also removed.
+
+``` {r dataloading, warning = FALSE, message = FALSE}
+activitydata <- read.csv("pml-training.csv")
+finaltest <- read.csv("pml-testing.csv")
+activitydata <- subset(activitydata, select = -grep("X|kurtosis|skewness|max|min|amplitude|var|avg|stddev|window|timestamp|name", names(activitydata)))
+activitydata$classe <- as.factor(activitydata$classe)
+library(caret)
+# 20% of data for validation, 20% of data for testing, 60% of data for training
+vsplit <- createDataPartition(y=activitydata$classe, p = 0.8, list = FALSE)
+validation <- activitydata[-vsplit,]
+modeldata <- activitydata[vsplit,]
+tsplit <- createDataPartition(y=modeldata$classe, p = 0.75, list = FALSE)
+testing <- modeldata[-tsplit,]
+training <- modeldata[tsplit,]
+```
+
+## Build models and check model accuracy on testing dataset
+``` {r modeling, echo = TRUE, cache = TRUE, results = FALSE}
+mdl1 <- train(classe~., data = training, method = "rpart")
+mdl2 <- train(classe~., data = training, method = "ctree")
+mdl3 <- train(classe~., data = training, method = "gbm")
+predictions1 <- predict(mdl1, newdata = testing)
+predictions2 <- predict(mdl2, newdata = testing)
+predictions3 <- predict(mdl3, newdata = testing)
+correct <- function(predict, actual) {sum(predict == actual)/length(actual)}
+mdl1pct <- correct(predictions1, testing$classe)
+mdl2pct <- correct(predictions2, testing$classe)
+mdl3pct <- correct(predictions3, testing$classe)
+```
+
+Build three different models using rpart, ctree, gbm and compare using testing dataset for model performance. These models were mostly chosen for performance reasons - random forests would be computationally expensive on a dataset of this size.
+
+Prediction accuracy for model 1 (rpart): `r mdl1pct`
+Prediction accuracy for model 2 (ctree): `r mdl2pct`
+Prediction accuracy for model 3 (gbm): `r mdl3pct`
+
+The prediction error for model 3 (gbm) on the testing dataset is significantly better than that for models 1 and 2 (rpart/ctree).
+```{r testing}
+confusionMatrix(predictions3, testing$classe)
+```
+
+## Estimate out of sample error via validation dataset
+The generalized boosted regression model was chosen based on performance for the testing dataset. Out of sample error could be estimated from the performance on the test dataset but since the testing dataset was used to pick the gbm model as the preferred model, the separate validation dataset should be used for estimating out of sample error instead. Expected accuracy is 96%.
+
+```{r validation}
+validation3 <- predict(mdl3, newdata = validation)
+confusionMatrix(validation3, validation$classe)
+```
+
