@@ -12,7 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Introduction
 This analysis attempts to predict activity types based on data from wearable accelerometers.
 Data is sourced from http://groupware.les.inf.puc-rio.br/har.
-The Weight Lifting Exercises dataset is used with the goal of predicting execution of a dumbbell biceps curl with class A corresponding to correct execution and classes B-E corresponding to incorrect execution in different forms.
+The Weight Lifting Exercises dataset is used with the goal of predicting execution of a dumbbell biceps curl with class A corresponding to proper execution and classes B-E corresponding to improper execution in different forms.
 
 ## Data Setup
 Load data from csv files and split into testing and training sets. The data in pml-testing.csv is for use in final testing for the model predictions only. Data in pml-training.csv is split into training/testing/validation sets for model development and analysis. Use 60% of data for training, 20% for testing, 20% for validation.
